@@ -855,6 +855,12 @@ def main():
             "of Poetry available online."
         ),
     )
+    parser.add_argument(
+        "--stderr",
+        dest="stderr",
+        action="store_true",
+        help="print error logs to stderr instead of log file",
+    )
 
     args = parser.parse_args()
 
@@ -880,18 +886,21 @@ def main():
         if e.log is not None:
             import traceback
 
-            _, path = tempfile.mkstemp(
-                suffix=".log",
-                prefix="poetry-installer-error-",
-                dir=str(Path.cwd()),
-                text=True,
-            )
-            installer._write(colorize("error", f"See {path} for error logs."))
             text = (
                 f"{e.log}\n"
                 f"Traceback:\n\n{''.join(traceback.format_tb(e.__traceback__))}"
             )
-            Path(path).write_text(text)
+            if args.stderr:
+                installer._write(colorize("error", text))
+            else:
+                _, path = tempfile.mkstemp(
+                    suffix=".log",
+                    prefix="poetry-installer-error-",
+                    dir=str(Path.cwd()),
+                    text=True,
+                )
+                installer._write(colorize("error", f"See {path} for error logs."))
+                Path(path).write_text(text)
 
         return e.return_code
 
